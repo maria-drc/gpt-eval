@@ -23,6 +23,7 @@ df_test.columns
 df_test[['task_id', 'task_description', 'exam', 'instructions']].iloc[2]
 
 # Initialize an empty list to store DataFrames
+# NOTE the code below is not used, all_exams re written by exams in lines below
 df_exams = []
 # Loop through the dictionary to process each file
 for category, file_name in files_score.items():
@@ -61,6 +62,12 @@ for occ in occupations_file_names:
     results = pd.read_csv(f'../../data/exam_approach/test_results/claude-3-7-sonnet-20250219/test_results_{occ}.csv',index_col=0)
     results = results.loc[:, ~results.columns.str.startswith('Unnamed')]
     results['occupation_group'] = occ
+    full_results = pd.read_csv(f'../../data/exam_approach/test_results/claude-3-7-sonnet-20250219/test_answers_{occ}.csv', index_col=0)
+    full_results['exam_length'] = full_results['exam'].apply(lambda x: len(x) if isinstance(x, str) else 0)
+    dict_task_examlength = dict(zip(full_results['task_id'], full_results['exam_length']))
+    results['exam_length'] = results['task_id'].map(dict_task_examlength)
+     # Append the processed DataFrame to the list
+
     exam_list = pd.concat([exam_list, results], axis=0, ignore_index=True)
 
 # mark exams with empty entry, nan entry or key grade scores over 100 as invalid
@@ -77,6 +84,8 @@ columns_to_plot = ['score_chatgpt_o3', 'score_claude_sonnet', 'score_gemini_25']
 columns_to_plot = ['score_gemini_25', 'score_claude_sonnet',
        'score_chatgpt_o3', 'score_deepseek']
 
+exams.head()
+# exams['exam_length']
 all_exams=exams
 
 # Create a histogram for each column
@@ -181,7 +190,7 @@ for model_key, score_col in full_mapping.items():
         continue
 
     # Extract just the relevant columns from all_exams for this model
-    temp = all_exams[['task_id', 'occupation', 'occupation_group', 'task_description', score_col]].copy()
+    temp = all_exams[['task_id', 'occupation', 'occupation_group', 'task_description', 'exam_length', score_col]].copy()
     temp = temp.rename(columns={score_col: 'score'})
 
     # Add model metadata
@@ -204,7 +213,7 @@ df_model_test_scores['Publication date'] = pd.to_datetime(df_model_test_scores['
 df_model_test_scores = df_model_test_scores.sort_values(by='Publication date').reset_index(drop=True)
 
 
-df_model_test_scores 
+df_model_test_scores.head()
 
 df_model_test_scores.to_csv( '../../results/tables/df_model_test_scores.csv', index=False)
 
